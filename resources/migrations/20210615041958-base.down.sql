@@ -1,0 +1,11 @@
+drop table lemmas;
+--;;
+drop table lemma_definition;
+--;;
+drop table lemma_knowledge;
+--;;
+drop table texts;
+--;;
+drop table sentences;
+--;;
+drop table words;
