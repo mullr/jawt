@@ -1,11 +1,12 @@
 ;; shadow-cljs configuration
-{:source-paths ["src/cljc" "src/cljs" "dev/cljc" "dev/cljs"]
+{:deps true
  :nrepl {:port 7002}
- :lein true
  :builds {:main {:target :browser
                  :output-dir "target/cljsbuild/public/js"
                  :asset-path "/js"
-                 :modules {:app {:entries [jawt.app]}}
-                 :devtools {:preloads []}
+                 :modules {:client {:init-fn jawt.client/init
+                                    :entries [jawt.client]}}
+                 :devtools {:after-load jawt.client/refresh
+                            :preloads [com.fulcrologic.fulcro.inspect.preload]}
                  :dev {:compiler-options {:closure-defines {}}}
                  :release {:build-options {:ns-aliases {}}}}}}
