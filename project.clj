@@ -30,12 +30,15 @@
                  ;; http
                  [ring/ring-core "1.9.3"]
                  [ring/ring-jetty-adapter "1.9.3"]
-                 [metosin/reitit "0.5.13"]]
+                 [metosin/reitit "0.5.13"]
+
+                 ;; cljs
+                 [thheller/shadow-cljs "2.14.6"]]
 
   :repositories [["atilika" "https://www.atilika.org/nexus/content/repositories/atilika"]]
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
   :repl-options {:init-ns jawt.core}
-
+  :resource-paths ["resources" "target/cljsbuild"]
   :main jawt.core
 
   :profiles 

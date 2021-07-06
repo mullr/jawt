@@ -12,25 +12,22 @@
   {:status 200, :body "ok"})
 
 (defn eql-handler [req]
-  (println "--------------------------------------------------------")
-  (prn req)
   (let [eql (edn/read (java.io.PushbackReader. (io/reader (:body req))))
-        _ (prn eql)
         res (eql/eval-eql eql)]
-    (prn res)
     {:status 200
      :headers {"Content-Type" "text/edn"}
      :body (pr-str res)}))
 
-(def router
-  (reitit.ring/router
-   [["/ping" {:get ping-handler}]
-    ["/eql" {:post eql-handler} ]]))
+(def handler
+  (reitit.ring/ring-handler
+   (reitit.ring/router [["/ping" {:get ping-handler}]
+                        ["/eql" {:post eql-handler}]])
+   (reitit.ring/routes
+    (reitit.ring/create-resource-handler {:path "/"})
+    (reitit.ring/create-default-handler))))
 
 (defn start-web-server []
-  (run-jetty (reitit.ring/ring-handler router)
-             {:port 3000
-              :join? false}))
+  (run-jetty handler {:port 3000 :join? false}))
 
 (mount/defstate web-server
   :start (start-web-server)

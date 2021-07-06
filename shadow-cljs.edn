@@ -1,0 +1,11 @@
+;; shadow-cljs configuration
+{:source-paths ["src/cljc" "src/cljs" "dev/cljc" "dev/cljs"]
+ :nrepl {:port 7002}
+ :lein true
+ :builds {:main {:target :browser
+                 :output-dir "target/cljsbuild/public/js"
+                 :asset-path "/js"
+                 :modules {:app {:entries [jawt.app]}}
+                 :devtools {:preloads []}
+                 :dev {:compiler-options {:closure-defines {}}}
+                 :release {:build-options {:ns-aliases {}}}}}}
