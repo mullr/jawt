@@ -14,7 +14,17 @@
                  [com.github.seancorfield/next.jdbc "1.2.674"]
                  [hikari-cp "2.13.0"]
                  [org.xerial/sqlite-jdbc "3.36.0.1"]
-                 [migratus "1.3.5"]]
+                 [migratus "1.3.5"]
+                 [com.wsscode/pathom "2.3.2"]
+
+                 ;; morphological analysis
+                 [org.atilika.kuromoji/kuromoji "0.7.7"]
+                 [com.atilika.kuromoji/kuromoji-ipadic "0.9.0"]
+                 [com.atilika.kuromoji/kuromoji-unidic "0.9.0"]]
+
+  :repositories [["atilika" "https://www.atilika.org/nexus/content/repositories/atilika"]]
+
+
   :source-paths ["src/clj" "src/cljs" "src/cljc"]
   :repl-options {:init-ns jawt.core}
 

@@ -1,4 +1,4 @@
-create table lemmas (
+create table lemma (
   id integer primary key,
   writing text,
   reading text,
@@ -12,7 +12,7 @@ create table lemma_definition (
   id integer primary key,
   lemma_id integer,
   language text,
-  definition text,
+  content text,
   foreign key(lemma_id) references lemmas(id)
 );
 
@@ -28,7 +28,7 @@ create table lemma_knowledge (
 
 --;;
 
-create table texts (
+create table text (
   id integer primary key,
   name text unique,
   content text,
@@ -38,22 +38,22 @@ create table texts (
 
 --;;
 
-create table sentences (
+create table sentence (
   id integer primary key,
   text_id integer,
   text_offset int,
   length int,
-  foreign key(text_id) references texts(id) on delete cascade
+  foreign key(text_id) references text(id) on delete cascade
 );
 
 --;;
 
-create table words(
+create table word(
   id integer primary key,
   sentence_id integer,
   sentence_offset integer,
   length integer,
   lemma_id integer,
-  foreign key (sentence_id) references sentences(id) on delete cascade,
-  foreign key(lemma_id) references lemmas(id)
+  foreign key (sentence_id) references sentence(id) on delete cascade,
+  foreign key(lemma_id) references lemma(id)
 );
