@@ -9,7 +9,7 @@
 (defn stop []
   (mount/stop))
 
-(defn reset []
+(defn restart []
   (stop)
   (start))
 

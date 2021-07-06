@@ -1,4 +1,4 @@
-(ns jawt.db
+(ns jawt.eql
   (:require
    [clojure.instant :refer [read-instant-timestamp]]
    [clojure.set :refer [rename-keys]]
@@ -133,6 +133,7 @@
 
 (comment
   (eval-eql [{:db/texts [:text/id :text/name]}])
+
   (eval-eql [{:db/lemmas [:lemma/id]}])
 
   (eval-eql [{[:text/id 2] [:text/name {:text/sentences [:sentence/id]}]}])
