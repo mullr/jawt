@@ -24,16 +24,3 @@
        (map (fn [[start-offset end-offset]]
               {:sentence/text-offset start-offset
                :sentence/length (- end-offset start-offset)}))))
-
-
-(defn sentence-break-seq [^String text ^Locale locale]
-  (let [bi (BreakIterator/getSentenceInstance locale)]
-    (.setText bi text)
-    ((fn step []
-       (let [offset (.next bi)]
-         (when (not= offset BreakIterator/DONE)
-           (cons offset (lazy-seq (step)))))))))
-
-
-
-
