@@ -2,7 +2,8 @@
   (:require
    [clojure.string :as str]
    [jawt.kuromoji-tables
-    :refer [str->pos str->inflection str->inflection-type]])
+    :refer [str->pos str->inflection str->inflection-type]]
+   [mount.core :as mount])
   (:import
    (com.atilika.kuromoji TokenBase)
    (com.atilika.kuromoji.unidic Token Tokenizer)
@@ -48,11 +49,11 @@
    :position (.getPosition token)
    :all-features (str/split (.getAllFeatures token) #",")})
 
-(def tokenizer
-  (delay (Tokenizer.)))
+(mount/defstate tokenizer
+  :start (Tokenizer.))
 
 (defn tokenize [s]
-  (map token-to-map (.tokenize @tokenizer s)))
+  (map token-to-map (.tokenize tokenizer s)))
 
 ;; Seriously, you made the *id* private of all things?
 (def token-word-id
@@ -76,7 +77,7 @@
           :word/length (count (.getSurface token))})
 
 (defn tokenize-mini [s]
-  (map token-to-minimal-map (.tokenize @tokenizer s)))
+  (map token-to-minimal-map (.tokenize tokenizer s)))
 
 (comment
   (use 'clojure.pprint)
