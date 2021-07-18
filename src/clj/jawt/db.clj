@@ -67,15 +67,19 @@
        (map second)
        (into [])))
 
+(defn munge-lemma [k]
+  (-> k
+      (update :lemma/pos kuromoji-tables/pos->int)))
+
 (defn munge-knowledge [k]
-  (update k
-          :lemma/pos kuromoji-tables/pos->int
-          :knowledge/familiarity familiarity->int))
+  (-> k
+      (update :lemma/pos kuromoji-tables/pos->int)
+      (update :knowledge/familiarity familiarity->int)))
 
 (defn unmunge-knowledge [k]
-  (update k
-          :lemma/pos kuromoji-tables/int->pos
-          :knowledge/familiarity int->familiarity))
+  (-> k
+      (update :lemma/pos kuromoji-tables/int->pos)
+      (update :knowledge/familiarity int->familiarity)))
 
 (defn unmunge-knowledge-partial [k]
   (update k :knowledge/familiarity int->familiarity))
@@ -86,13 +90,13 @@
         now (java.time.Instant/now)]
     (jdbc/execute-one! db ["insert into knowledge (lemma_pos, lemma_reading, lemma_writing,
                                                    familiarity, created, modified)
-                            values (?, ?, ?, ?, ?, ?) returning id
-                            on conflict do update set familiarity=?, modified=?"
+                            values (?, ?, ?, ?, ?, ?)
+                            on conflict do update set familiarity=?, modified=? "
                            pos reading writing familiarity now now
                            familiarity now])))
 
 (defn get-knowledge [db lemma]
-  (let [{:lemma/keys [pos reading writing]} lemma]
+  (let [{:lemma/keys [pos reading writing]} (munge-lemma lemma)]
     (some-> (jdbc/execute-one! db ["select familiarity, created, modified from knowledge
                                     where lemma_pos = ? and lemma_reading = ? and lemma_writing = ?"
                                    pos reading writing])

@@ -10,30 +10,35 @@
     (GET (str "/texts/" id)
         {:handler #(swap! state merge %)})))
 
-(defn set-visible-sentences! [state sentences sentence-count]
+(defn set-visible-sentences! [state sentences sentence-count keep-selection]
   (swap! state (fn [state]
-                 (-> state
-                     (assoc :ui/sentences sentences)
-                     (assoc :text/sentence-count sentence-count)
-                     (dissoc :ui/selected-word-path)
-                     (dissoc :ui/selected-word)))))
+                 (let [state' (-> state
+                                  (assoc :ui/sentences sentences)
+                                  (assoc :text/sentence-count sentence-count))]
+                   (if keep-selection
+                     (-> state'
+                         (assoc :ui/selected-word (get-in state' (:ui/selected-word-path state'))))
+                     (-> state'
+                         (dissoc :ui/selected-word-path) 
+                         (dissoc :ui/selected-word)))))))
 
-(defn load-visible-sentences! [state]
+(defn load-visible-sentences! [state keep-selection]
   (let [{:text/keys [id] :ui/keys [page]} @state]
     (GET (str "/texts/" id "/sentences")
         {:params {:offset (* page-size (dec page)) 
                   :count page-size}
          :handler #(set-visible-sentences! state
                                            (:text/sentences %)
-                                           (:text/sentence-count %))})))
+                                           (:text/sentence-count %)
+                                           keep-selection)})))
 
 (defn next-page! [state]
   (swap! state update :ui/page inc)
-  (load-visible-sentences! state))
+  (load-visible-sentences! state false))
 
 (defn prev-page! [state]
   (swap! state update :ui/page #(max 1 (dec %)))
-  (load-visible-sentences! state))
+  (load-visible-sentences! state false))
 
 (defn select-word! [state word-path]
   (swap! state
@@ -46,23 +51,43 @@
                  (assoc :ui/selected-word-path word-path)
                  (assoc :ui/selected-word (get-in state word-path)))))))
 
+(defn post-knowledge! [state lemma new-familiarity]
+  (POST "/knowledge"
+      {:params (assoc lemma :knowledge/familiarity new-familiarity)
+       ;; TODO handle error
+       :handler (fn [_] (load-visible-sentences! state true))}))
+
 (defn start [state parameters]
   (reset! state {:text/id (get-in parameters [:path :id])
                  :ui/page 1})
   (load-text-info! state)
-  (load-visible-sentences! state))
+  (load-visible-sentences! state false))
 
 (defn stop [state parameters]
   (reset! state nil))
 
-(defn selected-word-details-view [selected-word-state]
-  (let [{:lemma/keys [reading writing pos] :knowledge/keys [familiarity]} @selected-word-state]
-    [:div
-     [:div "Reading: " reading]
-     [:div "Writing: " writing]
-     [:div "POS: " pos]
-     [:div "Familiarity: " familiarity]
-     #_[:div "Raw: " [:pre (pr-str @selected-word-state)]]]))
+(defn familiarity-check-box [curr-familiarity this-familiarity label lemma state]
+  [:span
+   [:input {:id this-familiarity, :type :radio, :name :lemma-familiarity
+            :onChange (fn [ev]
+                        (let [is-checked (.-checked (.-target ev))]
+                          (when is-checked
+                            (post-knowledge! state lemma this-familiarity))))
+            :checked (= this-familiarity curr-familiarity)}]
+   [:label {:for this-familiarity} label]])
+
+(defn selected-word-details-view [selected-word-state state]
+  (let [{:lemma/keys [reading writing pos] :knowledge/keys [familiarity]} @selected-word-state
+        lemma (select-keys @selected-word-state [:lemma/reading :lemma/writing :lemma/pos])]
+    (when @selected-word-state
+      [:div
+       [:div "Reading: " reading]
+       [:div "Writing: " writing]
+       [:div "POS: " pos]
+       [:span "Familiarity: "
+        [familiarity-check-box familiarity :new "New" lemma state]
+        [familiarity-check-box familiarity :learning "Learning" lemma state]
+        [familiarity-check-box familiarity :known "Known" lemma state]]])))
 
 (defn word-view [word word-path sentence-content state]
   (let [{:word/keys [sentence-offset length]} word
@@ -96,5 +121,5 @@
               :let [s (assoc s :key i)
                     sentence-path [:ui/sentences i]]]
           [sentence-view s sentence-path state])]
-       [selected-word-details-view selected-word]])))
+       [selected-word-details-view selected-word state]])))
 

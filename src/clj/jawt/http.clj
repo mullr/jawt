@@ -70,6 +70,11 @@
       {:status 404
        :body (str "text id=" text-id " not found")})))
 
+(defn update-knowledge [req]
+  (let [k (select-keys (:body-params req) [:lemma/reading :lemma/writing :lemma/pos :knowledge/familiarity])]
+    (db/upsert-knowledge! (::db req) k)
+    {:status 200}))
+
 ;;; server
 
 (defn wrap-assoc-db [handler]
@@ -82,7 +87,8 @@
     [["/ping" {:get ping-handler}]
      ["/texts/:id/sentences" {:get get-sentences}]
      ["/texts/:id" {:get get-text}]
-     ["/texts" {:get list-texts}]]
+     ["/texts" {:get list-texts}]
+     ["/knowledge" {:post update-knowledge}]]
     {:data {:muuntaja muuntaja.core/instance
             :middleware [reitit.ring.middleware.muuntaja/format-middleware
                          reitit.ring.middleware.parameters/parameters-middleware
