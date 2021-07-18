@@ -2,6 +2,10 @@
 
 A Clojure library designed to ... well, that part is up to you.
 
+## Development
+- clj: open a repl, (start)
+- cljs: cider-connect-cljs -> localhost -> 7002 -> shadow-select -> :main -> refresh browser
+ie
 ## Usage
 
 FIXME

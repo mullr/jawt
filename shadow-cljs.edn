@@ -7,6 +7,7 @@
                  :modules {:client {:init-fn jawt.client/init
                                     :entries [jawt.client]}}
                  :devtools {:after-load jawt.client/refresh
-                            :preloads [com.fulcrologic.fulcro.inspect.preload]}
+                            :watch-dir "resources/public"
+                            :preloads []}
                  :dev {:compiler-options {:closure-defines {}}}
                  :release {:build-options {:ns-aliases {}}}}}}

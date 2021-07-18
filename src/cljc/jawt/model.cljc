@@ -35,6 +35,7 @@
 (s/def :text/id pos-int?)
 (s/def :text/name string?)
 (s/def :text/content string?)
+(s/def :text/sentence-count pos-int?)
 (s/def :text/modified inst?)
 (s/def :text/created inst?)
 (s/def :text/sentences (s/coll-of ::sentence))

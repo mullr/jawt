@@ -1,0 +1,13 @@
+.reading-content {
+    font-size: x-large;
+    white-space: pre-wrap;
+}
+
+span.word.selected {
+    text-decoration: underline 2px blue;
+}
+span.word.new {
+    background-color: lightblue;
+    margin-left: 1px;
+    margin-top: 1px;
+}

@@ -5,8 +5,8 @@
    [mount.core :as mount]
    [mount-up.core :as mu]
    [migratus.core :as migratus]
-   [shadow.cljs.devtools.api]
-   [shadow.cljs.devtools.server]))
+   [shadow.cljs.devtools.api :as shadow]
+   [shadow.cljs.devtools.server :as shadow-server]))
 
 (mu/on-upndown :info mu/log :before)
 
@@ -29,9 +29,9 @@
   (db/migrate))
 
 (mount/defstate shadow-cljs-server
-  :start (shadow.cljs.devtools.server/start!)
-  :stop (shadow.cljs.devtools.server/stop!))
+  :start (shadow-server/start!)
+  :stop (shadow-server/stop!))
 
 (mount/defstate shadow-cljs-watch
-  :start (shadow.cljs.devtools.api/watch :main)
-  :stop (shadow.cljs.devtools.api/stop-worker :main))
+  :start (shadow/watch :main)
+  :stop (shadow/stop-worker :main))

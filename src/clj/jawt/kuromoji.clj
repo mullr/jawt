@@ -76,7 +76,7 @@
           :word/sentence-offset (.getPosition token)
           :word/length (count (.getSurface token))})
 
-(defn tokenize-mini [s]
+(defn tokenize-mini [^String s]
   (map token-to-minimal-map (.tokenize tokenizer s)))
 
 (comment

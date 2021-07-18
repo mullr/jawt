@@ -1,13 +1,12 @@
 (ns jawt.db
   (:require
    [clojure.instant :refer [read-instant-timestamp]]
-   [clojure.set :refer [rename-keys]]
    [hikari-cp.core :as hikari-cp]
-   [jawt.kuromoji :as kuromoji]
-   [jawt.morph :as morph]
+   [jawt.kuromoji-tables :as kuromoji-tables]
    [migratus.core :as migratus]
    [mount.core :as mount]
-   [next.jdbc :as jdbc]))
+   [next.jdbc :as jdbc]
+   [next.jdbc.result-set]))
 
 (def jdbc-url "jdbc:sqlite:jawt.db")
 
@@ -15,52 +14,100 @@
   {:store :database
    :db {:connection-uri jdbc-url}})
 
+(defn migrate []
+  (migratus/migrate migratus-config))
+
 (mount/defstate ^:dynamic *db*
   :start (hikari-cp/make-datasource {:jdbc-url jdbc-url
                                      :connection-init-sql "PRAGMA foreign_keys = true;"})
   :stop (hikari-cp/close-datasource *db*))
 
-(defn migrate []
-  (migratus/migrate migratus-config))
+;;; text
 
-(defn insert-text! [db {:text/keys [name content]}]
-  (let [now (str (java.time.Instant/now))]
-    (jdbc/execute-one! *db*
-                       ["insert into text (name, content, created, modified) values (?, ?, ?, ?) returning id"
-                        name content now now])))
+(defn insert-text! [db text]
+  (let [now (java.time.Instant/now)]
+    (jdbc/execute-one! db
+                       ["insert into text (name, content, created, modified)
+                         values (?, ?, ?, ?)
+                         returning id"
+                        (:text/name text) (:text/content text) now now])))
 
-(defn delete-text! [db {:text/keys [id]}]
-  (jdbc/execute-one! *db* ["delete from text where id=?" id]))
+(defn unmunge-text [row]
+  (-> row
+      (update :text/created clojure.instant/read-instant-timestamp)
+      (update :text/modified clojure.instant/read-instant-timestamp)))
 
-(defn upsert-knowlege! [db {:lemma/keys [pos-int reading writing]
-                            :knowledge/keys [familiarity]}]
-  (let [now (str (java.time.Instant/now))]
-    (jdbc/execute-one! *db*
-                       ["insert into knowledge (lemma_pos, lemma_reading, lemma_wrting,
-                                                familiarity, created, modified)
-                         values (?, ?, ?, ?, ?, ?) returning id
-                         on conflict do update set familiarity=?, modified=?"
-                        pos-int reading writing familiarity now now
-                        familiarity now])))
+(defn list-texts [db]
+  (->> (jdbc/execute! db ["select id, name, created, modified from text"])
+       (map unmunge-text)))
+
+(defn get-text [db id]
+  (some-> (jdbc/execute-one! db ["select id, name, created, modified
+                                  from text where id = ?"
+                                 id])
+          unmunge-text))
+
+(defn get-text-content [db id]
+  (some-> (jdbc/execute-one! db ["select id, name, created, modified, content
+                                  from text where id = ?"
+                                 id])
+          unmunge-text))
+
+;;; knowledge
+
+(def familiarity->int
+  {:new 0
+   :learning 1
+   :known 2})
+
+(def int->familiarity
+  (->> familiarity->int
+       (map (fn [[k v]] [v k]))
+       (sort-by first)
+       (map second)
+       (into [])))
+
+(defn munge-knowledge [k]
+  (update k
+          :lemma/pos kuromoji-tables/pos->int
+          :knowledge/familiarity familiarity->int))
+
+(defn unmunge-knowledge [k]
+  (update k
+          :lemma/pos kuromoji-tables/int->pos
+          :knowledge/familiarity int->familiarity))
+
+(defn unmunge-knowledge-partial [k]
+  (update k :knowledge/familiarity int->familiarity))
+
+(defn upsert-knowledge! [db k]
+  (let [{:lemma/keys [pos reading writing]
+         :knowledge/keys [familiarity]} (munge-knowledge k)
+        now (java.time.Instant/now)]
+    (jdbc/execute-one! db ["insert into knowledge (lemma_pos, lemma_reading, lemma_writing,
+                                                   familiarity, created, modified)
+                            values (?, ?, ?, ?, ?, ?) returning id
+                            on conflict do update set familiarity=?, modified=?"
+                           pos reading writing familiarity now now
+                           familiarity now])))
+
+(defn get-knowledge [db lemma]
+  (let [{:lemma/keys [pos reading writing]} lemma]
+    (some-> (jdbc/execute-one! db ["select familiarity, created, modified from knowledge
+                                    where lemma_pos = ? and lemma_reading = ? and lemma_writing = ?"
+                                   pos reading writing])
+            unmunge-knowledge-partial)))
 
 (comment
   (def ryoma (slurp "ryoma1_1.txt"))
-  (insert-text! *db* #:text{:name "ryoma 1.1" :content ryoma})
-  (analyze-text! *db* 2 ryoma)
+
+  (insert-text! *db* #:text{:name "Ryoma"
+                            :content ryoma})
+
+  (list-texts *db*)
   
-  (->> (jdbc/execute! *db* ["select id, name, created, modified from text"])
-       (map (fn [row]
-              (-> row
-                  (update :text/created clojure.instant/read-instant-timestamp)
-                  (update :text/modified clojure.instant/read-instant-timestamp)))))
+  (get-text *db* 1)
 
-  (jdbc/execute! *db* ["insert into text (name, content, created, modified) 
-                       values ('name', 'content',
-                       ?,
-                       ?)"
-                       (str (java.time.Instant/now))
-                       (str (java.time.Instant/now))])
-
-
+  (get-text *db* 42)
 
   )

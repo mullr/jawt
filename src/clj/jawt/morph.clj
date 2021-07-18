@@ -14,13 +14,14 @@
          (when (not= offset BreakIterator/DONE)
            (cons offset (lazy-seq (step)))))))))
 
-(defn text->sentence-offsets
+(defn text-content->sentences
   "Identify the sentences in a ja string. Report each sentence as
   :sentence/text-offset and :sentence/length in the source text."
-  [^String text]
-  (->> (sentence-break-seq text Locale/JAPAN)
+  [^String text-content]
+  (->> (sentence-break-seq text-content Locale/JAPAN)
        (cons 0)
        (partition 2 1)
        (map (fn [[start-offset end-offset]]
               {:sentence/text-offset start-offset
-               :sentence/length (- end-offset start-offset)}))))
+               :sentence/length (- end-offset start-offset)
+               :sentence/content (subs text-content start-offset end-offset)}))))
