@@ -6,6 +6,11 @@ A Clojure library designed to ... well, that part is up to you.
 - clj: open a repl, (start)
 - cljs: cider-connect-cljs -> localhost -> 7002 -> shadow-select -> :main -> refresh browser
 ie
+
+## Conventions
+In cljs code, `state` indicates the component state atom, whereas `s`
+indicates a state value.
+
 ## Usage
 
 FIXME

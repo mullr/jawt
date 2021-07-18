@@ -10,105 +10,6 @@
    [reitit.frontend.controllers]
    [reitit.coercion.spec]))
 
-#_(defn load-texts! [db]
-  (GET (str "/texts")
-      {:handler (partial d/transact! db)}))
-
-#_(defn prepare-idents-for-db [ent]
-  (if (:word/id ent)
-    (-> ent
-        (assoc :word/sentence [:sentence/id (:sentence/id ent)])
-        (dissoc :sentence/id))
-    (-> ent
-        (assoc :sentence/text [:text/id (:text/id ent)])
-        (dissoc :text/id))))
-
-#_(defn load-sentences! [conn text-id offset count]
-  (GET (str "/texts/" text-id "/sentences")
-      {:params {:offset offset
-                :count count}
-       :handler (fn [res]
-                  ;; (doseq [e res]
-                  ;;   (prn (prepare-idents-for-db e)))
-                  (d/transact! conn (map prepare-idents-for-db res)))}))
-
-#_(defn init-reading-progress [conn text-id]
-  (let [existing (d/q '[:find ?p :in $ ?p
-                        :where
-                        [$ ?t :text/id ?text-id]
-                        [$ ?p  :ui.reading-progress/text ?t]]
-                      @conn text-id)]
-    (when (empty? existing)
-      (p/transact! conn [#:ui.reading-progress{:text [:text/id text-id]
-                                               :sentence-number 0}]))))
-
-#_(defn get-reading-progress [conn text-id]
-  (first 
-   (:ui.reading-progress/_text 
-    @(p/pull conn [{:ui.reading-progress/_text [:db/id :ui.reading-progress/sentence-number]}]
-             [:text/id 1]))))
-
-(def page-size 4)
-
-#_(defn load-visible-sentences [conn text-id]
-  (let [{:ui.reading-progress/keys [sentence-number]} (get-reading-progress conn text-id)]
-    (load-sentences! conn text-id sentence-number (+ sentence-number page-size))))
-
-#_(defn update-reading-progress [conn text-id f]
-  (let [p (get-reading-progress conn text-id)
-        _ (prn p)
-        p' (f p)]
-    (prn p')
-    (p/transact! conn [p'])))
-
-#_(defn next-page! [conn text-id]
-  (update-reading-progress conn text-id
-                           #(update % :ui.reading-progress/sentence-number + page-size)))
-
-#_(defn prev-page! [conn text-id]
-  (update-reading-progress conn text-id
-                           #(update % :ui.reading-progress/sentence-number - page-size)))
-
-
-#_(defn read [route]
-  (let [text-id (js/parseInt (get-in route [:path-params :id]))]
-    (init-reading-progress conn text-id)
-    (load-visible-sentences conn text-id)
-    (fn []
-      (let [{:ui.reading-progress/keys [sentence-number]}
-            (load-visible-sentences conn text-id)
-
-            visible-sentence-eids
-            @(p/q '[:find ?s-num ?s-id ?s-content
-                    :in $ ?text-id ?page-size
-                    :where
-                    [$ ?t :text/id ?text-id]
-                    [$ ?rp :ui.reading-progress/text ?t]
-                    [$ ?rp :ui.reading-progress/sentence-number ?min-s-num]
-                    [$ ?s :sentence/text ?t]
-                    [$ ?s :sentence/id ?s-id]
-                    [$ ?s :sentence/number ?s-num]
-                    [(<= ?min-s-num ?s-num)]
-                    [(+ ?min-s-num ?page-size) ?max-s-num]
-                    [(< ?s-num ?max-s-num)]
-                    [$ ?s :sentence/content ?s-content]]
-                  conn text-id page-size)
-
-            ;; {sentences :sentence/_text}
-            ;; @(p/pull conn
-            ;;          [{:sentence/_text [:db/id :sentence/id :sentence/content]}]
-            ;;          [:text/id text-id])
-            ]
-        ;; (when (empty? sentences)
-        ;;   (load-sentences! conn text-id 0 4))
-        [:div
-         [:div "Reading " text-id]
-         [:button {:onClick (fn [_] (prev-page! conn text-id))} "<- prev "]
-         [:button {:onClick (fn [_] (next-page! conn text-id))} "next ->"]
-         [:pre
-          (for [[_ id content] (sort-by first visible-sentence-eids)]
-            [:div {:key id} content])]]))))
-
 (defn root
   "The root component dispatches to the right page, depending on the route."
   [router-state]
@@ -169,8 +70,8 @@
 (defn ^:export init []
   (reagent.dom/render [root router-state] dom-root)
   (rfe/start! (router app-state)
-                               (partial handle-route-change router-state)
-                               {:use-fragment true})
+              (partial handle-route-change router-state)
+              {:use-fragment true})
   (js/console.log ">> Loaded <<"))
 
 (defn ^:export refresh []
