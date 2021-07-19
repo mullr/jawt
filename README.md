@@ -1,6 +1,11 @@
-# jawt
+# JAWT
 
-A Clojure library designed to ... well, that part is up to you.
+Japanese With Texts. Kind of like Learning With Texts, but set up for
+Japanese, with integrated morphological analysis. Kind of like LingQ,
+but doesn't send you an email every day to see how you're feeling.
+
+This is very early days; if you're not a developer, you should come
+back later.
 
 ## Development
 - clj: open a repl, (start)
@@ -11,21 +16,19 @@ ie
 In cljs code, `state` indicates the component state atom, whereas `s`
 indicates a state value.
 
-## Usage
-
-FIXME
-
 ## License
+JAWT: Japanese With Texts
+Copyright (C) 2021 Russell Mull
 
-Copyright © 2021 FIXME
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
 
-This program and the accompanying materials are made available under the
-terms of the Eclipse Public License 2.0 which is available at
-http://www.eclipse.org/legal/epl-2.0.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-This Source Code may also be made available under the following Secondary
-Licenses when the conditions for such availability set forth in the Eclipse
-Public License, v. 2.0 are satisfied: GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or (at your
-option) any later version, with the GNU Classpath Exception which is available
-at https://www.gnu.org/software/classpath/license.html.
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
