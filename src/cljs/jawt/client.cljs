@@ -20,9 +20,9 @@
         [:main.container
          [:nav
           [:ul
-           [:li [:strong "JAWT"]]
-           [:li "Texts"]
-           [:li "Read"]]]
+           [:li [:strong [:a  {:href "/"} "JAWT"]]]
+           [:li "Read"]
+           [:li "Knowledge"]]]
 
          (if-let [view (:view route-data)]
            [view]
