@@ -17,9 +17,16 @@
     (fn []
       (let [route @route
             route-data (:data route)]
-        (if-let [view (:view route-data)]
-          [view]
-          [:pre "Invalid route:" (pr-str route)])))))
+        [:main.container
+         [:nav
+          [:ul
+           [:li [:strong "JAWT"]]
+           [:li "Texts"]
+           [:li "Read"]]]
+
+         (if-let [view (:view route-data)]
+           [view]
+           [:pre "Invalid route:" (pr-str route)])]))))
 
 (defn page [app-state {:keys [key view start stop extra-opts
                               route-parameters controller-parameters]}]

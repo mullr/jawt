@@ -78,20 +78,27 @@
                 :onChange #(ev/emit [::add-text-update :text/content
                                      (-> % .-target .-value)])
                 :value (:text/content @adding-state)}]]
-   [:button {:onClick (fn [_] (ev/emit [::add-text-cancel]))}
-    "Cancel"]
-   " "
-   [:button {:onClick (fn [_] (ev/emit [::add-text-save]))}
-    "Save"]])
+   [:div.grid
+    [:div]
+    [:div]
+    [:button.secondary {:onClick (fn [_] (ev/emit [::add-text-cancel]))}
+     "Cancel"]
+    
+    [:button.primary {:onClick (fn [_] (ev/emit [::add-text-save]))}
+     "Save"]]])
 
 (defn view [state]
   (let [texts (r/cursor state [:ui/texts])
         adding (r/cursor state [:ui/adding])]
     (fn []
-      [:div
-       [:h3 "Texts"]
+      [:section
+       [:h2 "Texts"]
        [texts-list-view texts]
        
        (if (:ui/is-adding @state)
          [add-text-view adding]
-         [:button {:onClick (fn [_] (ev/emit [::add-text]))} "+ Add Text"])])))
+         [:div.grid
+          [:button.outline {:onClick (fn [_] (ev/emit [::add-text]))} "+ Add Text"]
+          [:div]
+          [:div]
+          [:div]])])))

@@ -18,9 +18,9 @@
 (defn load-visible-sentences [s [_ keep-selection]]
   (let [{:text/keys [id] :ui/keys [page]} s]
     (GET (str "/texts/" id "/sentences")
-        {:params {:offset (* page-size (dec page)) 
+        {:params {:offset (* page-size (dec page))
                   :count page-size}
-         :handler #(ev/emit [::set-visible-sentences 
+         :handler #(ev/emit [::set-visible-sentences
                              (:text/sentences %)
                           (:text/sentence-count %)
                           keep-selection])}))
@@ -34,7 +34,7 @@
       (-> s'
           (assoc :ui/selected-word (get-in s' (:ui/selected-word-path s'))))
       (-> s'
-          (dissoc :ui/selected-word-path) 
+          (dissoc :ui/selected-word-path)
           (dissoc :ui/selected-word)))))
 
 (defn next-page [s _]
@@ -82,28 +82,31 @@
     (ev/unsub (fn [id] (= (namespace id) this-ns))))
   (reset! state nil))
 
-(defn familiarity-check-box [curr-familiarity this-familiarity label lemma]
-  [:span
+(defn familiarity-radio-button [curr-familiarity this-familiarity label lemma]
+  [:label {:for this-familiarity :style {:display :inline
+                                         :margin-right "20px"}}
    [:input {:id this-familiarity, :type :radio, :name :lemma-familiarity
             :onChange (fn [ev]
                         (let [is-checked (.-checked (.-target ev))]
                           (when is-checked
                             (ev/emit [::post-knowledge lemma this-familiarity]))))
             :checked (= this-familiarity curr-familiarity)}]
-   [:label {:for this-familiarity} label]])
+   label])
 
 (defn selected-word-details-view [selected-word-state]
   (let [{:lemma/keys [reading writing pos] :knowledge/keys [familiarity]} @selected-word-state
         lemma (select-keys @selected-word-state [:lemma/reading :lemma/writing :lemma/pos])]
     (when @selected-word-state
       [:div
-       [:div "Reading: " reading]
-       [:div "Writing: " writing]
-       [:div "POS: " pos]
-       [:span "Familiarity: "
-        [familiarity-check-box familiarity :new "New" lemma]
-        [familiarity-check-box familiarity :learning "Learning" lemma]
-        [familiarity-check-box familiarity :known "Known" lemma]]])))
+       [:div.grid
+        [:div "Reading: " reading]
+        [:div "Writing: " writing]
+        [:div "POS: " pos]]
+       [:span
+        "Familiarity:  "
+        [familiarity-radio-button familiarity :new "New" lemma]
+        [familiarity-radio-button familiarity :learning "Learning" lemma]
+        [familiarity-radio-button familiarity :known "Known" lemma]]])))
 
 (defn word-view [word word-path sentence-content]
   (let [{:word/keys [sentence-offset length]} word
@@ -127,19 +130,21 @@
     (fn []
       [:div
        [:h3 "Reading: " (:text/name @state)]
-       [:div 
-        [:button {:onClick (fn [_] (ev/emit [::prev-page]))} "<- prev "]
-        " Page " (:ui/page @state)
-        "/" (Math/ceil (/ (:text/sentence-count @state) page-size))
-        " "
-        [:button {:onClick (fn [_] (ev/emit [::next-page]))} "next ->"]]
        [:div
-        [:input {:type :checkbox, :id :mark-new-as-known}]
-        [:label {:for :mark-new-as-known} "On next, mark 'new' words as 'known'"]]
-       [:pre.reading-content
+        [:div.grid
+         [:button {:onClick (fn [_] (ev/emit [::prev-page]))} "<- prev "]
+         [:button {:onClick (fn [_] (ev/emit [::next-page]))} "next ->"]]]
+       [:progress {:value (:ui/page @state)
+                   :max (Math/ceil (/ (:text/sentence-count @state) page-size))}]
+       [:div
+
+        [:label {:for :mark-new-as-known}
+         [:input {:type :checkbox, :id :mark-new-as-known, :role :switch}]
+         "On next, mark 'new' words as 'known'"]]
+       [:article.reading-content
         (for [[i s] (map-indexed vector (:ui/sentences @state))
               :let [s (assoc s :key i)
                     sentence-path [:ui/sentences i]]]
-          [sentence-view s sentence-path state])]
-       [selected-word-details-view selected-word state]])))
-
+          [sentence-view s sentence-path state])
+        [:footer
+         [selected-word-details-view selected-word state]]]])))
