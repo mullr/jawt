@@ -74,10 +74,10 @@
             ::prev-page prev-page
             ::select-word select-word
             ::post-knowledge post-knowledge})
-  (ev/emit [::load-text-info])
-  (ev/emit [::load-visible-sentences]))
+  (ev/emit [::load-text-info]
+           [::load-visible-sentences]))
 
-(defn stop [state parameters]
+(defn stop [state _]
   (let [this-ns (namespace ::foo)]
     (ev/unsub (fn [id] (= (namespace id) this-ns))))
   (reset! state nil))
@@ -126,7 +126,7 @@
   (let [selected-word (r/cursor state [:ui/selected-word])]
     (fn []
       [:div
-       [:h3 "Reading " (:text/name @state)]
+       [:h3 "Reading: " (:text/name @state)]
        [:div 
         [:button {:onClick (fn [_] (ev/emit [::prev-page]))} "<- prev "]
         " Page " (:ui/page @state)

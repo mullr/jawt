@@ -26,6 +26,14 @@
       {:status 200, :body text}
       {:status 404})))
 
+(defn add-text [req]
+  (let [text (select-keys (:body-params req) [:text/name :text/id])]
+    (let [id (db/insert-text! (::db req) text)]
+      (if id
+        {:status 201
+         :body {:text/id id}}
+        {:status 409}))))
+
 ;; return both sentence and word entities
 (defn get-sentences [req]
   (let [text-id (Integer/parseInt (get-in req [:path-params :id]))
@@ -71,7 +79,8 @@
        :body (str "text id=" text-id " not found")})))
 
 (defn update-knowledge [req]
-  (let [k (select-keys (:body-params req) [:lemma/reading :lemma/writing :lemma/pos :knowledge/familiarity])]
+  (let [k (select-keys (:body-params req) [:lemma/reading :lemma/writing :lemma/pos
+                                           :knowledge/familiarity])]
     (db/upsert-knowledge! (::db req) k)
     {:status 200}))
 
@@ -87,7 +96,8 @@
     [["/ping" {:get ping-handler}]
      ["/texts/:id/sentences" {:get get-sentences}]
      ["/texts/:id" {:get get-text}]
-     ["/texts" {:get list-texts}]
+     ["/texts" {:get list-texts
+                :post add-text}]
      ["/knowledge" {:post update-knowledge}]]
     {:data {:muuntaja muuntaja.core/instance
             :middleware [reitit.ring.middleware.muuntaja/format-middleware

@@ -9,13 +9,18 @@
 (defonce dispatch-loop
   (async/go-loop []
     (when-let [msg (<! ch)]
-      (doseq [{:keys [pred handler atom]} (vals @subscriptions)]
-        (when (pred msg)
-          (swap! atom #(handler % msg))))
+      (let [matching-subs (into []
+                                (filter (fn [{:keys [pred]}] (pred msg)))
+                                (vals @subscriptions))]
+        (if (empty? matching-subs)
+          (js/console.log (str "Unhandled event: " (pr-str msg)))
+          (doseq [{:keys [handler atom]} matching-subs]
+            (swap! atom #(handler % msg)))))
       (recur))))
 
-(defn emit [msg]
-  (async/go (>! ch msg)))
+(defn emit [& msgs]
+  (async/go (doseq [msg msgs]
+              (>! ch msg))))
 
 (defn sub [{:keys [id event pred handler swap atom]}]
   (let [id (or id event)]
