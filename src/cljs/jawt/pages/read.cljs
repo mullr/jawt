@@ -22,20 +22,18 @@
                   :count page-size}
          :handler #(ev/emit [::set-visible-sentences
                              (:text/sentences %)
-                          (:text/sentence-count %)
-                          keep-selection])}))
+                             (:text/sentence-count %)
+                             keep-selection])}))
   s)
 
 (defn set-visible-sentences [s [_ sentences sentence-count keep-selection]]
   (let [s' (-> s
-                   (assoc :ui/sentences sentences)
-                   (assoc :text/sentence-count sentence-count))]
+               (assoc :ui/sentences sentences)
+               (assoc :text/sentence-count sentence-count))]
     (if keep-selection
-      (-> s'
-          (assoc :ui/selected-word (get-in s' (:ui/selected-word-path s'))))
-      (-> s'
-          (dissoc :ui/selected-word-path)
-          (dissoc :ui/selected-word)))))
+     (let [word-path (:ui/selected-word-path s')]
+        (assoc-in s' (conj word-path :ui/selected) true))
+      (dissoc s' :ui/selected-word-path))))
 
 (defn next-page [s _]
   (ev/emit [::load-visible-sentences false])
@@ -51,8 +49,14 @@
                  s)]
     (-> s'
         (assoc-in (conj word-path :ui/selected) true)
-        (assoc :ui/selected-word-path word-path)
-        (assoc :ui/selected-word (get-in s word-path)))))
+        (assoc :ui/selected-word-path word-path))))
+
+(defn deselect-word [s _]
+  (if-let [word-path (:ui/selected-word-path s)]
+    (-> s
+        (dissoc :ui/selected-word-path)
+        (update-in word-path dissoc :ui/selected))
+    s))
 
 (defn post-knowledge [s [ _ lemma new-familiarity]]
   (POST "/knowledge"
@@ -66,14 +70,15 @@
           {:text/id (get-in parameters [:path :id])
            :ui/page 1})
   (ev/subs state
-           {::load-text-info load-text-info
-            ::set-text-info set-text-info
-            ::load-visible-sentences load-visible-sentences
-            ::set-visible-sentences set-visible-sentences
-            ::next-page next-page
-            ::prev-page prev-page
-            ::select-word select-word
-            ::post-knowledge post-knowledge})
+           {::load-text-info #'load-text-info
+            ::set-text-info #'set-text-info
+            ::load-visible-sentences #'load-visible-sentences
+            ::set-visible-sentences #'set-visible-sentences
+            ::next-page #'next-page
+            ::prev-page #'prev-page
+            ::select-word #'select-word
+            ::deselect-word #'deselect-word
+            ::post-knowledge #'post-knowledge})
   (ev/emit [::load-text-info]
            [::load-visible-sentences]))
 
@@ -83,30 +88,27 @@
   (reset! state nil))
 
 (defn familiarity-radio-button [curr-familiarity this-familiarity label lemma]
-  [:label {:for this-familiarity :style {:display :inline
-                                         :margin-right "20px"}}
-   [:input {:id this-familiarity, :type :radio, :name :lemma-familiarity
-            :onChange (fn [ev]
-                        (let [is-checked (.-checked (.-target ev))]
-                          (when is-checked
-                            (ev/emit [::post-knowledge lemma this-familiarity]))))
-            :checked (= this-familiarity curr-familiarity)}]
+  [:a.familiarity-button
+   {:role :button
+    :id this-familiarity,
+    :onClick (fn [e]
+               (.stopPropagation e)
+               (ev/emit [::post-knowledge lemma this-familiarity]))
+    :class [this-familiarity
+            (when-not (= this-familiarity curr-familiarity) :outline)]}
    label])
 
-(defn selected-word-details-view [selected-word-state]
-  (let [{:lemma/keys [reading writing pos] :knowledge/keys [familiarity]} @selected-word-state
-        lemma (select-keys @selected-word-state [:lemma/reading :lemma/writing :lemma/pos])]
-    (when @selected-word-state
-      [:div
-       [:div.grid
-        [:div "Reading: " reading]
-        [:div "Writing: " writing]
-        [:div "POS: " pos]]
-       [:span
-        "Familiarity:  "
-        [familiarity-radio-button familiarity :new "New" lemma]
-        [familiarity-radio-button familiarity :learning "Learning" lemma]
-        [familiarity-radio-button familiarity :known "Known" lemma]]])))
+(defn selected-word-details-view [word]
+  (let [{:lemma/keys [reading writing pos] :knowledge/keys [familiarity]} word
+        lemma (select-keys word [:lemma/reading :lemma/writing :lemma/pos])]
+    [:small.knowledge-popup
+     [:div "Reading: " reading]
+     [:div "Writing: " writing]
+     [:div "POS: " pos]
+     [:div
+      [familiarity-radio-button familiarity :new "New" lemma]
+      [familiarity-radio-button familiarity :learning "Learning" lemma]
+      [familiarity-radio-button familiarity :known "Known" lemma]]]))
 
 (defn word-view [word word-path sentence-content]
   (let [{:word/keys [sentence-offset length]} word
@@ -114,7 +116,9 @@
     [:span.word {:onClick (fn [_] (ev/emit [::select-word word-path]))
                  :class [(when (:ui/selected word) :selected)
                          (:knowledge/familiarity word)]}
-     word-content]))
+     word-content
+     (when (:ui/selected word)
+       [selected-word-details-view word])]))
 
 (defn sentence-view [sentence sentence-path]
   [:<> {:key (:sentence/id sentence)}
@@ -126,25 +130,26 @@
      [word-view w word-path (:sentence/content sentence)])])
 
 (defn view [state]
-  (let [selected-word (r/cursor state [:ui/selected-word])]
-    (fn []
-      [:div
-       [:h3 "Reading: " (:text/name @state)]
-       [:div
-        [:div.grid
-         [:button {:onClick (fn [_] (ev/emit [::prev-page]))} "<- prev "]
-         [:button {:onClick (fn [_] (ev/emit [::next-page]))} "next ->"]]]
-       [:progress {:value (:ui/page @state)
-                   :max (Math/ceil (/ (:text/sentence-count @state) page-size))}]
-       [:div
-
-        [:label {:for :mark-new-as-known}
-         [:input {:type :checkbox, :id :mark-new-as-known, :role :switch}]
-         "On next, mark 'new' words as 'known'"]]
-       [:article.reading-content
-        (for [[i s] (map-indexed vector (:ui/sentences @state))
-              :let [s (assoc s :key i)
-                    sentence-path [:ui/sentences i]]]
-          [sentence-view s sentence-path state])
-        [:footer
-         [selected-word-details-view selected-word state]]]])))
+  (fn []
+    [:div
+     ;; this would be better on the body element, or something like that
+     {:onClick (fn [e]
+                 (when-not (= "word" (-> e .-target .-classList (aget 0)))
+                   (println "!!!!!!!!!! DESELECT")
+                   (ev/emit [::deselect-word])))}
+     [:h3 "Reading: " (:text/name @state)]
+     [:div
+      [:div.grid
+       [:button {:onClick (fn [_] (ev/emit [::prev-page]))} "Last Page"]
+       [:button {:onClick (fn [_] (ev/emit [::next-page]))} "Next Page"]]]
+     [:progress {:value (:ui/page @state)
+                 :max (Math/ceil (/ (:text/sentence-count @state) page-size))}]
+     [:div
+      [:label {:for :mark-new-as-known}
+       [:input {:type :checkbox, :id :mark-new-as-known, :role :switch}]
+       "On next, mark 'new' words as 'known'"]]
+     [:article.reading-content
+      (for [[i s] (map-indexed vector (:ui/sentences @state))
+            :let [s (assoc s :key i)
+                  sentence-path [:ui/sentences i]]]
+        [sentence-view s sentence-path state])]]))

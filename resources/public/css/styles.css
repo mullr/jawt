@@ -1,15 +1,17 @@
 .reading-content {
     font-size: x-large;
     white-space: pre-wrap;
+    overflow: visible;
 }
 
 span.word {
+    position: relative;
+    /* display: inline-block; */
     margin-left: 1px;
     margin-top: 1px;
 }
-span.word.selected {
-    text-decoration: underline 2px blue;
-}
+
+span.word.selected { }
 
 span.word.new {
     background-color: lightblue;
@@ -21,4 +23,72 @@ span.word.learning {
 
 span.word.known {
     background-color: none;
+}
+
+.knowledge-popup {
+    position: absolute;
+    width: 400px;
+    padding: 10px;
+    border: 1px solid var(--code-background-color);
+    background: var(--code-background-color);
+    border-radius: var(--border-radius);
+    z-index: 2;
+    top: 100%;
+    left: 50%;
+    margin-left: -200px;
+    margin-top: 16px;
+    filter: drop-shadow(0 2px 4px rgb(0 0 0 / 35%));
+}
+
+/* 'filter: drop-shadow' leaves screen artifacts in safari */
+_::-webkit-full-page-media, _:future, :root .knowledge-popup {
+    box-shadow: 0 2px 4px rgb(0 0 0 / 35%);
+    filter: None;
+}
+
+.knowledge-popup:after {
+    content: "";
+    position:absolute;
+    background: var(--code-background-color);
+    width: 28px;
+    height: 16px;
+    clip-path: polygon(50% 0, 0 100%, 100% 100%);
+    top: -16px;
+    left: 47%;
+}
+
+.familiarity-button.new {
+    padding: 6px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-right: -1px;
+}
+
+.familiarity-button.learning {
+    padding: 6px;
+    border-radius: 0;
+}
+
+.familiarity-button.known{
+    padding: 6px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    margin-left: -1px;
+}
+
+
+@media (prefers-color-scheme: dark) {
+    span.word.selected { }
+
+    span.word.new {
+        background-color: darkblue;
+    }
+
+    span.word.learning {
+        background-color: darkgreen;
+    }
+
+    span.word.known {
+        background-color: none;
+    }
 }
