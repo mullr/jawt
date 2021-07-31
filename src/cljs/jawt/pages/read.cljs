@@ -102,6 +102,8 @@
   (let [{:lemma/keys [reading writing pos] :knowledge/keys [familiarity]} word
         lemma (select-keys word [:lemma/reading :lemma/writing :lemma/pos])]
     [:small.knowledge-popup
+     ;; So the popup can be clicked on without dismissing it
+     {:onClick (fn [e] (.stopPropagation e))}
      [:div "Reading: " reading]
      [:div "Writing: " writing]
      [:div "POS: " pos]
@@ -110,24 +112,27 @@
       [familiarity-radio-button familiarity :learning "Learning" lemma]
       [familiarity-radio-button familiarity :known "Known" lemma]]]))
 
-(defn word-view [word word-path sentence-content]
-  (let [{:word/keys [sentence-offset length]} word
-        word-content (subs sentence-content sentence-offset (+ sentence-offset length))]
+(defn word-view [word word-path]
+  (let [{:word/keys [sentence-offset length content]} word]
     [:span.word {:onClick (fn [_] (ev/emit [::select-word word-path]))
                  :class [(when (:ui/selected word) :selected)
                          (:knowledge/familiarity word)]}
-     word-content
+     content
      (when (:ui/selected word)
        [selected-word-details-view word])]))
 
 (defn sentence-view [sentence sentence-path]
-  [:<> {:key (:sentence/id sentence)}
-   (for [[i w] (map-indexed vector (:sentence/words sentence))
-         :let [w (assoc w :key i)
-               word-path (-> sentence-path
-                             (conj :sentence/words)
-                             (conj i))]]
-     [word-view w word-path (:sentence/content sentence)])])
+  (let [sentence-content (:sentence/content sentence)]
+    [:<> {:key (:sentence/id sentence)}
+     (for [[i word] (map-indexed vector (:sentence/words sentence))
+           :let [{:word/keys [sentence-offset length]} word
+                 word (assoc word
+                             :key i
+                             :word/content (subs sentence-content sentence-offset (+ sentence-offset length)))
+                 word-path (-> sentence-path
+                               (conj :sentence/words)
+                               (conj i))]]
+       [word-view word word-path])]))
 
 (defn view [state]
   (fn []
